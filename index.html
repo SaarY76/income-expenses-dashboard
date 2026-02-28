@@ -584,7 +584,13 @@
         outline:none;
       }
 
-      .a11yActions{
+      
+      /* Fix select/option colors across themes (some browsers don't inherit correctly) */
+      #a11yPanel select{ color: var(--text) !important; }
+      #a11yPanel option{ color: #eaf0ff; background: #0b1220; }
+      :root[data-theme="light"] #a11yPanel option{ color:#0b1220; background:#ffffff; }
+      :root[data-theme="light"] #a11yPanel select{ background:#ffffff; border-color: var(--line); }
+.a11yActions{
         display:flex;
         gap: 10px;
         margin-top: 10px;
@@ -1392,7 +1398,12 @@
               .getPropertyValue("--bg")
               .trim() || "#0b1220";
 
-          const FONT_FAMILY = getComputedStyle(document.body).fontFamily;
+          
+          const styles = getComputedStyle(document.documentElement);
+          const centerText = styles.getPropertyValue("--text").trim() || "#ffffff";
+          const centerSub = styles.getPropertyValue("--muted").trim() || "rgba(255,255,255,.85)";
+          const ringStroke = styles.getPropertyValue("--line").trim() || "rgba(255,255,255,.12)";
+const FONT_FAMILY = getComputedStyle(document.body).fontFamily;
 
           // Outer subtle circle
           ctx.beginPath();
@@ -1406,7 +1417,7 @@
             ctx.fillStyle = pageBg; // 👈 צבע רקע אמיתי של העמוד
             ctx.fill();
 
-            ctx.fillStyle = "#ffffff";
+            ctx.fillStyle = centerText;
             ctx.font = `800 14px ${FONT_FAMILY}`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -1435,7 +1446,7 @@
           // Outline
           ctx.beginPath();
           ctx.arc(cx, cy, r, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(255,255,255,.12)";
+          ctx.strokeStyle = ringStroke;
           ctx.lineWidth = 2;
           ctx.stroke();
 
@@ -1443,11 +1454,11 @@
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = centerText;
           ctx.font = `900 20px ${FONT_FAMILY}`;
           ctx.fillText(centerValue, cx, cy - 10);
 
-          ctx.fillStyle = "rgba(255,255,255,.85)";
+          ctx.fillStyle = centerSub;
           ctx.font = `800 13px ${FONT_FAMILY}`;
           ctx.fillText(centerTitle, cx, cy + 16);
 
@@ -1861,7 +1872,8 @@
 
         attachExistingRows();
         updateAll();
-        tryAutoLoadFromLocalStorage();
+        window.addEventListener("a11y:changed", () => { updateAll(); });
+      tryAutoLoadFromLocalStorage();
       })();
     </script>
   
