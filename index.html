@@ -393,11 +393,294 @@
         margin-top: 4px;
         font-weight: 700;
       }
+    
+      /* =========================
+         Accessibility Widget + Themes
+         ========================= */
+      :root{
+        --ui-scale: 1; /* 0.9..1.3 */
+      }
+
+      /* Make text-size control actually affect the whole UI (works in Chromium).
+         Fallback for browsers without zoom is handled in JS. */
+      .wrap{
+        zoom: var(--ui-scale);
+        transform-origin: top center;
+      }
+
+      /* Theme variable extensions */
+      :root{
+        --surface-1: rgba(255,255,255,.06);
+        --surface-2: rgba(255,255,255,.03);
+        --surface-3: rgba(255,255,255,.04);
+        --panel: rgba(9,14,26,.92);
+        --row-bg: rgba(0,0,0,.12);
+        --chart-bg: rgba(0,0,0,.10);
+        --tooltip-text: var(--text);
+        --tooltip-sub: rgba(168,179,214,.95);
+      }
+
+      /* Wire the existing UI to the variables so light mode can flip correctly */
+      body{ background: 
+          radial-gradient(900px 400px at 15% 10%, rgba(118, 169, 255, 0.2), transparent 60%),
+          radial-gradient(800px 420px at 90% 0%, rgba(46, 229, 157, 0.12), transparent 55%),
+          radial-gradient(900px 520px at 50% 100%, rgba(255, 91, 110, 0.1), transparent 60%),
+          var(--bg);
+      }
+      button{ color: var(--text); }
+      .card{
+        background: linear-gradient(180deg, var(--surface-1), var(--surface-2));
+      }
+      .pill{ background: var(--surface-3); }
+      .row{ background: var(--row-bg); }
+      .chart{ background: var(--chart-bg); }
+      #chartTooltip{
+        background: var(--panel);
+        color: var(--tooltip-text);
+      }
+      #chartTooltip .t-sub{ color: var(--tooltip-sub); }
+
+      /* Focus visibility (keyboard) */
+      :focus-visible{
+        outline: none;
+        box-shadow: var(--focus);
+      }
+
+      /* Light theme overrides */
+      :root[data-theme="light"]{
+        --bg:#f6f8ff;
+        --text:#0b1220;
+        --muted:#405073;
+        --line: rgba(0,0,0,.10);
+        --shadow: 0 16px 40px rgba(0,0,0,.12);
+
+        --surface-1: rgba(0,0,0,.03);
+        --surface-2: rgba(0,0,0,.015);
+        --surface-3: rgba(0,0,0,.02);
+        --panel: rgba(255,255,255,.95);
+        --row-bg: rgba(0,0,0,.05);
+        --chart-bg: rgba(0,0,0,.04);
+        --tooltip-text: #0b1220;
+        --tooltip-sub: rgba(64,80,115,.95);
+      }
+
+      /* High contrast mode (works for both themes) */
+      :root[data-contrast="high"]{
+        --line: rgba(255,255,255,.35);
+      }
+      :root[data-theme="light"][data-contrast="high"]{
+        --line: rgba(0,0,0,.28);
+      }
+      :root[data-contrast="high"] .card,
+      :root[data-contrast="high"] .row,
+      :root[data-contrast="high"] .pill,
+      :root[data-contrast="high"] .chart{
+        border-width: 2px;
+      }
+
+      /* Link underline toggle */
+      :root[data-underline="on"] a{
+        text-decoration: underline;
+        text-underline-offset: .18em;
+        text-decoration-thickness: 2px;
+      }
+
+      /* Reduce motion toggle */
+      :root[data-reduce-motion="on"] *{
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      /* Floating accessibility widget */
+      #a11yWidget{
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        z-index: 100000;
+      }
+      #a11yBtn{
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+        color: var(--text);
+        cursor: pointer;
+        box-shadow: 0 14px 30px rgba(0,0,0,.30);
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        font-weight: 900;
+      }
+      #a11yBtn:hover{ transform: translateY(-1px); }
+      #a11yBtn:focus{ outline:none; box-shadow: var(--focus), 0 14px 30px rgba(0,0,0,.30); }
+
+      #a11yPanel{
+        margin-top: 10px;
+        width: 320px;
+        max-width: calc(100vw - 32px);
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--text);
+        box-shadow: 0 20px 44px rgba(0,0,0,.35);
+        backdrop-filter: blur(10px);
+        padding: 12px;
+      }
+      #a11yPanel[hidden]{ display:none; }
+
+      .a11yHeader{
+        display:flex;
+        align-items:center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .a11yHeader strong{ font-size: 14px; letter-spacing:.2px; }
+      .a11yClose{
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,.06);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 6px 10px;
+        cursor:pointer;
+        font-weight: 900;
+      }
+
+      .a11yRow{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 10px;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+      .a11yRow:first-of-type{ border-top: 0; }
+      .a11yRow label{
+        font-weight: 900;
+        font-size: 12px;
+        color: var(--text);
+      }
+      .a11yRow small{
+        display:block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .a11yRow select,
+      .a11yRow input[type="checkbox"]{
+        accent-color: rgba(118,169,255,.9);
+      }
+      .a11yRow select{
+        width: 140px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 10px;
+        outline:none;
+      }
+
+      .a11yActions{
+        display:flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .a11yActions button{
+        flex:1;
+        border-radius: 12px;
+        padding: 10px 10px;
+        font-weight: 900;
+      }
+
+      /* Screen-reader only helper */
+      .sr-only{
+        position:absolute !important;
+        width:1px !important;
+        height:1px !important;
+        padding:0 !important;
+        margin:-1px !important;
+        overflow:hidden !important;
+        clip:rect(0,0,0,0) !important;
+        white-space:nowrap !important;
+        border:0 !important;
+      }
+
     </style>
   </head>
 
   <body>
-    <div class="wrap">
+
+    <!-- Accessibility widget (floating) -->
+    <div id="a11yWidget" aria-label="כלי נגישות">
+      <button id="a11yBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="a11yPanel" title="נגישות">♿</button>
+      <section id="a11yPanel" role="dialog" aria-label="הגדרות נגישות" hidden>
+        <div class="a11yHeader">
+          <strong>נגישות</strong>
+          <button id="a11yClose" class="a11yClose" type="button">סגור</button>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yThemeSel">מצב תצוגה</label>
+            <small>כהה / בהיר / אוטומטי לפי המכשיר</small>
+          </div>
+          <select id="a11yThemeSel">
+            <option value="auto">אוטומטי</option>
+            <option value="dark">כהה</option>
+            <option value="light">בהיר</option>
+          </select>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yScaleSel">גודל טקסט</label>
+            <small>מגדיל/מקטין את כל הממשק</small>
+          </div>
+          <select id="a11yScaleSel">
+            <option value="0.9">קטן</option>
+            <option value="1" selected>רגיל</option>
+            <option value="1.1">גדול</option>
+            <option value="1.2">גדול מאוד</option>
+            <option value="1.3">מקסימלי</option>
+          </select>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yContrastChk">ניגודיות מוגברת</label>
+            <small>מחדד קווים/מסגרות לתצוגה ברורה יותר</small>
+          </div>
+          <input id="a11yContrastChk" type="checkbox" />
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yUnderlineChk">קו תחתון לקישורים</label>
+            <small>עוזר לזהות קישורים במהירות</small>
+          </div>
+          <input id="a11yUnderlineChk" type="checkbox" />
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yMotionChk">הפחתת תנועה</label>
+            <small>מבטל אנימציות ומעברים</small>
+          </div>
+          <input id="a11yMotionChk" type="checkbox" />
+        </div>
+
+        <div class="a11yActions">
+          <button id="a11yResetBtn" type="button">איפוס</button>
+          <button id="a11ySaveBtn" class="btn-primary" type="button">שמירה</button>
+        </div>
+      </section>
+    </div>
+
+<div class="wrap">
       <header>
         <div>
           <h1>הכנסות מול הוצאות</h1>
@@ -1581,5 +1864,146 @@
         tryAutoLoadFromLocalStorage();
       })();
     </script>
+  
+    <script>
+      (function(){
+        const KEY = "a11y-settings-v2";
+        const root = document.documentElement;
+
+        const btn = document.getElementById("a11yBtn");
+        const panel = document.getElementById("a11yPanel");
+        const closeBtn = document.getElementById("a11yClose");
+
+        const themeSel = document.getElementById("a11yThemeSel");
+        const scaleSel = document.getElementById("a11yScaleSel");
+        const contrastChk = document.getElementById("a11yContrastChk");
+        const underlineChk = document.getElementById("a11yUnderlineChk");
+        const motionChk = document.getElementById("a11yMotionChk");
+
+        const resetBtn = document.getElementById("a11yResetBtn");
+        const saveBtn = document.getElementById("a11ySaveBtn");
+
+        function systemTheme(){
+          try{
+            return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          }catch(_){
+            return "dark";
+          }
+        }
+
+        function openPanel(){
+          panel.hidden = false;
+          btn.setAttribute("aria-expanded","true");
+          themeSel.focus();
+        }
+        function closePanel(){
+          panel.hidden = true;
+          btn.setAttribute("aria-expanded","false");
+          btn.focus();
+        }
+
+        function applyZoom(scale){
+          // Primary: CSS zoom on .wrap
+          root.style.setProperty("--ui-scale", String(scale));
+
+          // Fallback for browsers that don't support zoom (e.g., Firefox)
+          const wrap = document.querySelector(".wrap");
+          if (!wrap) return;
+          const supportsZoom = CSS.supports && CSS.supports("zoom", "1");
+          if (!supportsZoom){
+            wrap.style.transform = `scale(${scale})`;
+            wrap.style.transformOrigin = "top center";
+            // keep layout from shrinking horizontally
+            wrap.style.width = (100/scale) + "%";
+          }else{
+            wrap.style.transform = "";
+            wrap.style.width = "";
+          }
+        }
+
+        function applySettings(s){
+          // Theme
+          const resolvedTheme = (s.theme === "auto") ? systemTheme() : s.theme;
+          root.setAttribute("data-theme", resolvedTheme);
+
+          // Contrast / underline / reduce motion
+          root.toggleAttribute("data-contrast", !!s.highContrast);
+          root.setAttribute("data-contrast", s.highContrast ? "high" : "normal");
+
+          root.setAttribute("data-underline", s.underlineLinks ? "on" : "off");
+          root.setAttribute("data-reduce-motion", s.reduceMotion ? "on" : "off");
+
+          // Scale
+          applyZoom(s.scale);
+
+          // Sync UI
+          themeSel.value = s.theme;
+          scaleSel.value = String(s.scale);
+          contrastChk.checked = !!s.highContrast;
+          underlineChk.checked = !!s.underlineLinks;
+          motionChk.checked = !!s.reduceMotion;
+
+          // Re-render charts so the donut center matches the new --bg (light/dark)
+          if (typeof window.dispatchEvent === "function"){
+            window.dispatchEvent(new Event("a11y:changed"));
+          }
+        }
+
+        function readUI(){
+          return {
+            theme: themeSel.value,
+            scale: Number(scaleSel.value) || 1,
+            highContrast: contrastChk.checked,
+            underlineLinks: underlineChk.checked,
+            reduceMotion: motionChk.checked,
+          };
+        }
+
+        function load(){
+          try{
+            const raw = localStorage.getItem(KEY);
+            return raw ? JSON.parse(raw) : null;
+          }catch(_){
+            return null;
+          }
+        }
+        function save(s){
+          try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(_){}
+        }
+        function defaults(){
+          return { theme:"auto", scale:1, highContrast:false, underlineLinks:false, reduceMotion:false };
+        }
+
+        // Events
+        btn.addEventListener("click", () => panel.hidden ? openPanel() : closePanel());
+        closeBtn.addEventListener("click", closePanel);
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !panel.hidden) closePanel();
+        });
+
+        // Live preview
+        [themeSel, scaleSel, contrastChk, underlineChk, motionChk].forEach(el => {
+          el.addEventListener("change", () => applySettings(readUI()));
+        });
+
+        saveBtn.addEventListener("click", () => { const s = readUI(); save(s); closePanel(); });
+        resetBtn.addEventListener("click", () => { const s = defaults(); save(s); applySettings(s); });
+
+        // Init
+        const s = load() || defaults();
+        applySettings(s);
+
+        // If system theme changes while on auto, update
+        try{
+          const mq = window.matchMedia("(prefers-color-scheme: light)");
+          mq.addEventListener("change", () => {
+            const cur = readUI();
+            if (cur.theme === "auto") applySettings(load() || defaults());
+          });
+        }catch(_){}
+      })();
+    </script>
+
   </body>
 </html>
