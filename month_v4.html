@@ -1,0 +1,2073 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>חישוב חודש - תקציב</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --text: #eaf0ff;
+        --muted: #a8b3d6;
+        --line: rgba(255, 255, 255, 0.1);
+        --shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        --radius: 18px;
+        --focus: 0 0 0 3px rgba(118, 169, 255, 0.35);
+        --good: #2ee59d;
+        --bad: #ff5b6e;
+        --warn: #ffcf5b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(
+            900px 400px at 15% 10%,
+            rgba(118, 169, 255, 0.2),
+            transparent 60%
+          ),
+          radial-gradient(
+            800px 420px at 90% 0%,
+            rgba(46, 229, 157, 0.12),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 520px at 50% 100%,
+            rgba(255, 91, 110, 0.1),
+            transparent 60%
+          ),
+          var(--bg);
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 22px 16px 60px;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button {
+        border: 1px solid var(--line);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.1),
+          rgba(255, 255, 255, 0.04)
+        );
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        transition:
+          transform 0.08s ease,
+          border-color 0.15s ease;
+        font-weight: 700;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+      button:focus {
+        outline: none;
+        box-shadow:
+          var(--focus),
+          0 10px 24px rgba(0, 0, 0, 0.18);
+      }
+      .btn-primary {
+        background: linear-gradient(
+          180deg,
+          rgba(118, 169, 255, 0.28),
+          rgba(118, 169, 255, 0.1)
+        );
+        border-color: rgba(118, 169, 255, 0.35);
+      }
+      .btn-danger {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 91, 110, 0.26),
+          rgba(255, 91, 110, 0.1)
+        );
+        border-color: rgba(255, 91, 110, 0.35);
+      }
+      .file-hidden {
+        display: none;
+      }
+
+      .card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.03)
+        );
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 14px 14px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0)
+        );
+      }
+      .card-header h2 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+      .card-body {
+        padding: 14px;
+      }
+
+      .charts-card .card-body {
+        padding: 12px;
+      }
+
+      .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: stretch;
+      }
+      @media (max-width: 1100px) {
+        .charts-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 600px) {
+        .charts-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .chart {
+        background: rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+      .chart-top {
+        min-height: 3.6em; /* מספיק ל-3 שורות */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .chart-title {
+        font-weight: 900;
+        font-size: 13px;
+        letter-spacing: 0.2px;
+      }
+      .chart-sub {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .canvas-wrap {
+        width: 100%;
+        display: grid;
+        place-items: center;
+        padding: 2px 0;
+      }
+      canvas {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .legend strong {
+        color: var(--text);
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 900px) {
+        .summary {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 520px) {
+        .summary {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .pill {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px 12px;
+      }
+      .pill .label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pill .value {
+        font-size: 18px;
+        margin-top: 6px;
+        font-weight: 900;
+      }
+      .value.good {
+        color: #2ee59d;
+      }
+      .value.bad {
+        color: #ff5b6e;
+      }
+      .value.warn {
+        color: #ffcf5b;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .table {
+        display: grid;
+        gap: 10px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 140px 44px;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.12);
+        align-items: center;
+      }
+      .row .name {
+        color: var(--text);
+        font-weight: 700;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 10px;
+        color: var(--text);
+        outline: none;
+      }
+      .row input:focus {
+        box-shadow: var(--focus);
+        border-color: rgba(118, 169, 255, 0.35);
+      }
+      .icon-btn {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        user-select: none;
+      }
+      .icon-btn:hover {
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .addbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .addbar input {
+        flex: 1;
+        min-width: 180px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 10px;
+        color: var(--text);
+        outline: none;
+      }
+      .addbar input:focus {
+        box-shadow: var(--focus);
+        border-color: rgba(118, 169, 255, 0.35);
+      }
+      .hint {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      #chartTooltip {
+        position: fixed;
+        display: none;
+        z-index: 9999;
+        pointer-events: none;
+        padding: 10px 10px;
+        border-radius: 12px;
+        background: rgba(9, 14, 26, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.35;
+        backdrop-filter: blur(8px);
+        max-width: 260px;
+        white-space: nowrap;
+      }
+      #chartTooltip .t-name {
+        font-weight: 900;
+      }
+      #chartTooltip .t-sub {
+        color: rgba(168, 179, 214, 0.95);
+        margin-top: 4px;
+        font-weight: 700;
+      }
+    
+      /* =========================
+         Accessibility Widget + Themes
+         ========================= */
+      :root{
+        --ui-scale: 1; /* 0.9..1.3 */
+      }
+
+      /* Make text-size control actually affect the whole UI (works in Chromium).
+         Fallback for browsers without zoom is handled in JS. */
+      .wrap{
+        zoom: var(--ui-scale);
+        transform-origin: top center;
+      }
+
+      /* Theme variable extensions */
+      :root{
+        --surface-1: rgba(255,255,255,.06);
+        --surface-2: rgba(255,255,255,.03);
+        --surface-3: rgba(255,255,255,.04);
+        --panel: rgba(9,14,26,.92);
+        --row-bg: rgba(0,0,0,.12);
+        --chart-bg: rgba(0,0,0,.10);
+        --tooltip-text: var(--text);
+        --tooltip-sub: rgba(168,179,214,.95);
+      }
+
+      /* Wire the existing UI to the variables so light mode can flip correctly */
+      body{ background: 
+          radial-gradient(900px 400px at 15% 10%, rgba(118, 169, 255, 0.2), transparent 60%),
+          radial-gradient(800px 420px at 90% 0%, rgba(46, 229, 157, 0.12), transparent 55%),
+          radial-gradient(900px 520px at 50% 100%, rgba(255, 91, 110, 0.1), transparent 60%),
+          var(--bg);
+      }
+      button{ color: var(--text); }
+      .card{
+        background: linear-gradient(180deg, var(--surface-1), var(--surface-2));
+      }
+      .pill{ background: var(--surface-3); }
+      .row{ background: var(--row-bg); }
+      .chart{ background: var(--chart-bg); }
+      #chartTooltip{
+        background: var(--panel);
+        color: var(--tooltip-text);
+      }
+      #chartTooltip .t-sub{ color: var(--tooltip-sub); }
+
+      /* Focus visibility (keyboard) */
+      :focus-visible{
+        outline: none;
+        box-shadow: var(--focus);
+      }
+
+      /* Light theme overrides */
+      :root[data-theme="light"]{
+        --bg:#f6f8ff;
+        --text:#0b1220;
+        --muted:#405073;
+        --line: rgba(0,0,0,.10);
+        --shadow: 0 16px 40px rgba(0,0,0,.12);
+
+        --surface-1: rgba(0,0,0,.03);
+        --surface-2: rgba(0,0,0,.015);
+        --surface-3: rgba(0,0,0,.02);
+        --panel: rgba(255,255,255,.95);
+        --row-bg: rgba(0,0,0,.05);
+        --chart-bg: rgba(0,0,0,.04);
+        --tooltip-text: #0b1220;
+        --tooltip-sub: rgba(64,80,115,.95);
+      }
+
+      /* High contrast mode (works for both themes) */
+      :root[data-contrast="high"]{
+        --line: rgba(255,255,255,.35);
+      }
+      :root[data-theme="light"][data-contrast="high"]{
+        --line: rgba(0,0,0,.28);
+      }
+      :root[data-contrast="high"] .card,
+      :root[data-contrast="high"] .row,
+      :root[data-contrast="high"] .pill,
+      :root[data-contrast="high"] .chart{
+        border-width: 2px;
+      }
+
+      /* Link underline toggle */
+      :root[data-underline="on"] a{
+        text-decoration: underline;
+        text-underline-offset: .18em;
+        text-decoration-thickness: 2px;
+      }
+
+      /* Reduce motion toggle */
+      :root[data-reduce-motion="on"] *{
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      /* Floating accessibility widget */
+      #a11yWidget{
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        z-index: 100000;
+      }
+      #a11yBtn{
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+        color: var(--text);
+        cursor: pointer;
+        box-shadow: 0 14px 30px rgba(0,0,0,.30);
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        font-weight: 900;
+      }
+      #a11yBtn:hover{ transform: translateY(-1px); }
+      #a11yBtn:focus{ outline:none; box-shadow: var(--focus), 0 14px 30px rgba(0,0,0,.30); }
+
+      #a11yPanel{
+        margin-top: 10px;
+        width: 320px;
+        max-width: calc(100vw - 32px);
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--text);
+        box-shadow: 0 20px 44px rgba(0,0,0,.35);
+        backdrop-filter: blur(10px);
+        padding: 12px;
+      }
+      #a11yPanel[hidden]{ display:none; }
+
+      .a11yHeader{
+        display:flex;
+        align-items:center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .a11yHeader strong{ font-size: 14px; letter-spacing:.2px; }
+      .a11yClose{
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,.06);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 6px 10px;
+        cursor:pointer;
+        font-weight: 900;
+      }
+
+      .a11yRow{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 10px;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+      .a11yRow:first-of-type{ border-top: 0; }
+      .a11yRow label{
+        font-weight: 900;
+        font-size: 12px;
+        color: var(--text);
+      }
+      .a11yRow small{
+        display:block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .a11yRow select,
+      .a11yRow input[type="checkbox"]{
+        accent-color: rgba(118,169,255,.9);
+      }
+      .a11yRow select{
+        width: 140px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 10px;
+        outline:none;
+      }
+
+      
+      /* Fix select/option colors across themes (some browsers don't inherit correctly) */
+      #a11yPanel select{ color: var(--text) !important; }
+      #a11yPanel option{ color: #eaf0ff; background: #0b1220; }
+      :root[data-theme="light"] #a11yPanel option{ color:#0b1220; background:#ffffff; }
+      :root[data-theme="light"] #a11yPanel select{ background:#ffffff; border-color: var(--line); }
+.a11yActions{
+        display:flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .a11yActions button{
+        flex:1;
+        border-radius: 12px;
+        padding: 10px 10px;
+        font-weight: 900;
+      }
+
+      /* Screen-reader only helper */
+      .sr-only{
+        position:absolute !important;
+        width:1px !important;
+        height:1px !important;
+        padding:0 !important;
+        margin:-1px !important;
+        overflow:hidden !important;
+        clip:rect(0,0,0,0) !important;
+        white-space:nowrap !important;
+        border:0 !important;
+      }
+
+    
+    .nav-btn{
+      display:inline-block;
+      text-decoration:none;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+      transition: transform .08s ease, border-color .15s ease;
+      font-weight:700;
+    }
+    .nav-btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+    .nav-btn:focus{ outline:none; box-shadow: var(--focus), 0 10px 24px rgba(0,0,0,.18); }
+
+  </style>
+  </head>
+
+  <body>
+
+    <!-- Accessibility widget (floating) -->
+    <div id="a11yWidget" aria-label="כלי נגישות">
+      <button id="a11yBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="a11yPanel" title="נגישות">♿</button>
+      <section id="a11yPanel" role="dialog" aria-label="הגדרות נגישות" hidden>
+        <div class="a11yHeader">
+          <strong>נגישות</strong>
+          <button id="a11yClose" class="a11yClose" type="button">סגור</button>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yThemeSel">מצב תצוגה</label>
+            <small>כהה / בהיר / אוטומטי לפי המכשיר</small>
+          </div>
+          <select id="a11yThemeSel">
+            <option value="auto">אוטומטי</option>
+            <option value="dark">כהה</option>
+            <option value="light">בהיר</option>
+          </select>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yScaleSel">גודל טקסט</label>
+            <small>מגדיל/מקטין את כל הממשק</small>
+          </div>
+          <select id="a11yScaleSel">
+            <option value="0.9">קטן</option>
+            <option value="1" selected>רגיל</option>
+            <option value="1.1">גדול</option>
+            <option value="1.2">גדול מאוד</option>
+            <option value="1.3">מקסימלי</option>
+          </select>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yContrastChk">ניגודיות מוגברת</label>
+            <small>מחדד קווים/מסגרות לתצוגה ברורה יותר</small>
+          </div>
+          <input id="a11yContrastChk" type="checkbox" />
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yUnderlineChk">קו תחתון לקישורים</label>
+            <small>עוזר לזהות קישורים במהירות</small>
+          </div>
+          <input id="a11yUnderlineChk" type="checkbox" />
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yMotionChk">הפחתת תנועה</label>
+            <small>מבטל אנימציות ומעברים</small>
+          </div>
+          <input id="a11yMotionChk" type="checkbox" />
+        </div>
+
+        <div class="a11yActions">
+          <button id="a11yResetBtn" type="button">איפוס</button>
+          <button id="a11ySaveBtn" class="btn-primary" type="button">שמירה</button>
+        </div>
+      </section>
+    </div>
+
+<div class="wrap">
+      <header>
+        <div>
+          <h1>הכנסות מול הוצאות</h1>
+          <div class="sub">
+            למעלה: 4 גרפי עוגה • מתחת: סיכום • למטה: טפסי הכנסות/הוצאות
+          </div>
+          <div id="loadedFileInfo" class="hint" style="display:none; margin-top:6px;">
+            קובץ נטען: <strong id="loadedFileName"></strong>
+          </div>
+        </div>
+
+        <div class="toolbar">
+        <a class="nav-btn" href="home_v4.html">בית</a>
+        <a class="nav-btn" href="compare_v4.html">השוואה</a>
+          <button id="saveBtn" class="btn-primary" type="button">שמור</button>
+          <button id="loadBtn" type="button">טען</button>
+          <input
+            id="fileInput"
+            class="file-hidden"
+            type="file"
+            accept="application/json"
+          />
+          <button id="resetBtn" class="btn-danger" type="button">איפוס</button>
+        </div>
+      </header>
+
+      <!-- 4 גרפים -->
+      <section class="card charts-card" aria-label="Charts">
+        <div class="card-header">
+          <h2>גרפים</h2>
+          <button id="recalcBtn" type="button">חשב מחדש</button>
+        </div>
+        <div class="card-body">
+          <div class="charts-grid">
+            <div class="chart" aria-label="Income pie">
+              <div class="chart-top">
+                <div>
+                  <div class="chart-title">הכנסות לפי קטגוריות</div>
+                  <div id="incomePieTotal" class="chart-sub">סה״כ: ₪0</div>
+                </div>
+              </div>
+              <div class="canvas-wrap">
+                <canvas
+                  id="incomePieChart"
+                  width="260"
+                  height="260"
+                  aria-label="Income pie chart"
+                ></canvas>
+              </div>
+              <div class="legend">
+                <span>קטגוריות: <strong id="incomePieCount">0</strong></span>
+                <span>מובילה: <strong id="incomePieTop">-</strong></span>
+              </div>
+            </div>
+
+            <div class="chart" aria-label="Expenses pie">
+              <div class="chart-top">
+                <div>
+                  <div class="chart-title">הוצאות לפי קטגוריות</div>
+                  <div id="expensePieTotal" class="chart-sub">סה״כ: ₪0</div>
+                </div>
+              </div>
+              <div class="canvas-wrap">
+                <canvas
+                  id="expensePieChart"
+                  width="260"
+                  height="260"
+                  aria-label="Expenses pie chart"
+                ></canvas>
+              </div>
+              <div class="legend">
+                <span>קטגוריות: <strong id="expensePieCount">0</strong></span>
+                <span>מובילה: <strong id="expensePieTop">-</strong></span>
+              </div>
+            </div>
+
+            <div
+              class="chart"
+              aria-label="Utilization pie (Expenses vs Remaining)"
+            >
+              <div class="chart-top">
+                <div>
+                  <div class="chart-title">ניצול הכנסות</div>
+                  <div id="utilizationSub" class="chart-sub">
+                    הוצאות: 0% • נשאר: 100%
+                  </div>
+                </div>
+                <div class="chart-sub" id="utilizationTotal">הכנסות: ₪0</div>
+              </div>
+              <div class="canvas-wrap">
+                <canvas
+                  id="utilizationPieChart"
+                  width="260"
+                  height="260"
+                  aria-label="Utilization pie chart"
+                ></canvas>
+              </div>
+              <div class="legend">
+                <span>הוצאות: <strong id="expensesPercent">0%</strong></span>
+                <span>נשאר: <strong id="remainingPercent">100%</strong></span>
+              </div>
+            </div>
+
+            <div
+              class="chart"
+              aria-label="Expenses as percent of income by categories"
+            >
+              <div class="chart-top">
+                <div>
+                  <div class="chart-title">
+                    הוצאות כ-% מההכנסה (לפי קטגוריות)
+                  </div>
+                  <div id="expensesOfIncomeSub" class="chart-sub">
+                    מתוך ₪0 הכנסות
+                  </div>
+                </div>
+                <div class="chart-sub" id="expensesOfIncomeTotal">
+                  הוצאות: ₪0
+                </div>
+              </div>
+              <div class="canvas-wrap">
+                <canvas
+                  id="expensesOfIncomePieChart"
+                  width="260"
+                  height="260"
+                  aria-label="Expenses of income pie chart"
+                ></canvas>
+              </div>
+              <div class="legend">
+                <span
+                  >סה״כ הוצאות:
+                  <strong id="expensesOfIncomeUsedPct">0%</strong></span
+                >
+                <span
+                  >נשאר:
+                  <strong id="expensesOfIncomeRemainingPct">100%</strong></span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- סיכום -->
+      <section class="card" style="margin-top: 14px" aria-label="Summary">
+        <div class="card-header">
+          <h2>סיכום</h2>
+          <div class="hint">תצוגה חודשית</div>
+        </div>
+        <div class="card-body">
+          <div class="summary">
+            <div class="pill">
+              <div class="label">סה״כ הכנסות</div>
+              <div id="totalIncome" class="value">₪0</div>
+            </div>
+            <div class="pill">
+              <div class="label">סה״כ הוצאות</div>
+              <div id="totalExpenses" class="value">₪0</div>
+            </div>
+            <div class="pill">
+              <div class="label">יתרה (הכנסות - הוצאות)</div>
+              <div id="netBalance" class="value warn">₪0</div>
+            </div>
+            <div class="pill">
+              <div class="label">אחוז חיסכון</div>
+              <div id="savingsRate" class="value">0%</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- טפסים -->
+      <section class="grid" aria-label="Income and expenses forms">
+        <div class="card" aria-label="Income side">
+          <div class="card-header">
+            <h2>הכנסות</h2>
+            <div class="hint">קטגוריות מוכנות + אפשר להוסיף</div>
+          </div>
+          <div class="card-body">
+            <div id="incomeList" class="table" aria-label="Income list">
+              <div class="row income-row" data-type="income" data-fixed="true">
+                <div class="name">משכורת</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div class="row income-row" data-type="income" data-fixed="true">
+                <div class="name">הכנסה נוספת</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <div class="addbar" aria-label="Add income category">
+              <input
+                id="incomeNewName"
+                type="text"
+                placeholder="הוסף כותרת להכנסה (למשל: פרילנס)"
+              />
+              <button id="addIncomeCategoryBtn" type="button">הוסף</button>
+            </div>
+
+            <template id="incomeRowTemplate">
+              <div class="row income-row" data-type="income">
+                <div class="name" data-field="name">כותרת</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="card" aria-label="Expenses side">
+          <div class="card-header">
+            <h2>הוצאות</h2>
+            <div class="hint">קטגוריות מוכנות + אפשר להוסיף</div>
+          </div>
+          <div class="card-body">
+            <div id="expenseList" class="table" aria-label="Expense list">
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="אוכל"
+                data-fixed="true"
+              >
+                <div class="name">אוכל</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="קניות לבית"
+                data-fixed="true"
+              >
+                <div class="name">קניות לבית</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="שכר דירה"
+                data-fixed="true"
+              >
+                <div class="name">שכר דירה</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="משכנתא"
+                data-fixed="true"
+              >
+                <div class="name">משכנתא</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="דלק"
+                data-fixed="true"
+              >
+                <div class="name">דלק</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="ביטוחים"
+                data-fixed="true"
+              >
+                <div class="name">ביטוחים</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="חשבונות (חשמל/מים/ארנונה)"
+                data-fixed="true"
+              >
+                <div class="name">חשבונות (חשמל/מים/ארנונה)</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="אינטרנט/סלולר"
+                data-fixed="true"
+              >
+                <div class="name">אינטרנט/סלולר</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="תחבורה ציבורית/מוניות"
+                data-fixed="true"
+              >
+                <div class="name">תחבורה ציבורית/מוניות</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="row expense-row"
+                data-type="expense"
+                data-category="בילויים/מסעדות"
+                data-fixed="true"
+              >
+                <div class="name">בילויים/מסעדות</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <div class="addbar" aria-label="Add expense category">
+              <input
+                id="expenseNewName"
+                type="text"
+                placeholder="הוסף כותרת להוצאה (למשל: חדר כושר)"
+              />
+              <button id="addExpenseCategoryBtn" type="button">הוסף</button>
+            </div>
+
+            <template id="expenseRowTemplate">
+              <div class="row expense-row" data-type="expense">
+                <div class="name" data-field="name">כותרת</div>
+                <input
+                  class="amount"
+                  data-field="amount"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                />
+                <button
+                  class="icon-btn remove"
+                  data-action="remove"
+                  type="button"
+                  title="מחק"
+                >
+                  🗑️
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="chartTooltip" role="tooltip" aria-hidden="true">
+      <div class="t-name" id="tooltipName">-</div>
+      <div class="t-sub" id="tooltipSub">-</div>
+    </div>
+
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+
+        const els = {
+          incomeList: $("incomeList"),
+          expenseList: $("expenseList"),
+          incomeTemplate: $("incomeRowTemplate"),
+          expenseTemplate: $("expenseRowTemplate"),
+
+          incomeNewName: $("incomeNewName"),
+          expenseNewName: $("expenseNewName"),
+          addIncomeCategoryBtn: $("addIncomeCategoryBtn"),
+          addExpenseCategoryBtn: $("addExpenseCategoryBtn"),
+
+          totalIncome: $("totalIncome"),
+          totalExpenses: $("totalExpenses"),
+          netBalance: $("netBalance"),
+          savingsRate: $("savingsRate"),
+
+          incomePieCanvas: $("incomePieChart"),
+          expensePieCanvas: $("expensePieChart"),
+          utilizationCanvas: $("utilizationPieChart"),
+          expensesOfIncomeCanvas: $("expensesOfIncomePieChart"),
+
+          incomePieTotal: $("incomePieTotal"),
+          expensePieTotal: $("expensePieTotal"),
+          incomePieCount: $("incomePieCount"),
+          expensePieCount: $("expensePieCount"),
+          incomePieTop: $("incomePieTop"),
+          expensePieTop: $("expensePieTop"),
+
+          utilizationSub: $("utilizationSub"),
+          utilizationTotal: $("utilizationTotal"),
+          expensesPercent: $("expensesPercent"),
+          remainingPercent: $("remainingPercent"),
+
+          expensesOfIncomeSub: $("expensesOfIncomeSub"),
+          expensesOfIncomeTotal: $("expensesOfIncomeTotal"),
+          expensesOfIncomeUsedPct: $("expensesOfIncomeUsedPct"),
+          expensesOfIncomeRemainingPct: $("expensesOfIncomeRemainingPct"),
+
+          recalcBtn: $("recalcBtn"),
+          saveBtn: $("saveBtn"),
+          loadBtn: $("loadBtn"),
+          fileInput: $("fileInput"),
+          resetBtn: $("resetBtn"),
+
+          tooltip: $("chartTooltip"),
+          tooltipName: $("tooltipName"),
+          tooltipSub: $("tooltipSub"),
+          loadedFileInfo: $("loadedFileInfo"),
+          loadedFileName: $("loadedFileName"),
+        };
+
+        const STORAGE_KEY = "income-expenses-v4";
+        const chartsState = new Map();
+
+        function formatILS(n) {
+          const v = isFinite(n) ? n : 0;
+          return "₪" + Math.round(v).toLocaleString("he-IL");
+        }
+        function formatPct(n) {
+          const v = isFinite(n) ? n : 0;
+          return v.toFixed(1) + "%";
+        }
+        function parseAmount(inputEl) {
+          const v = Number(String(inputEl?.value || "").replace(",", "."));
+          return isFinite(v) ? v : 0;
+        }
+        function getRows(container) {
+          return Array.from(container.querySelectorAll(".row"));
+        }
+
+        function computeTotals() {
+          const totalIncome = getRows(els.incomeList).reduce((sum, row) => {
+            const input = row.querySelector('input[data-field="amount"]');
+            return sum + parseAmount(input);
+          }, 0);
+          const totalExpenses = getRows(els.expenseList).reduce((sum, row) => {
+            const input = row.querySelector('input[data-field="amount"]');
+            return sum + parseAmount(input);
+          }, 0);
+          const net = totalIncome - totalExpenses;
+          const savings = totalIncome > 0 ? (net / totalIncome) * 100 : 0;
+          return { totalIncome, totalExpenses, net, savings };
+        }
+
+        function setBalanceClass(net, income, expenses) {
+          els.netBalance.classList.remove("good", "bad", "warn");
+          if (income === 0 && expenses === 0)
+            els.netBalance.classList.add("warn");
+          else if (net > 0) els.netBalance.classList.add("good");
+          else if (net < 0) els.netBalance.classList.add("bad");
+          else els.netBalance.classList.add("warn");
+        }
+
+        function getBreakdown(container) {
+          const items = getRows(container)
+            .map((row) => {
+              const name =
+                (row.querySelector(".name")?.textContent || "").trim() ||
+                "כותרת";
+              const amount = parseAmount(
+                row.querySelector('input[data-field="amount"]'),
+              );
+              return { name, amount };
+            })
+            .filter((x) => x.amount > 0);
+
+          const total = items.reduce((s, x) => s + x.amount, 0);
+
+          let top = "-";
+          if (items.length) {
+            const maxItem = items.reduce(
+              (a, b) => (b.amount > a.amount ? b : a),
+              items[0],
+            );
+            top = maxItem.name;
+          }
+          return { items, total, top };
+        }
+
+        function colorForIndex(i, seed) {
+          // Goal: adjacent slices look максимально different.
+          // Strategy:
+          // 1) Use a fixed "high-contrast" hue order (like a color wheel sampling),
+          //    but reorder it by "zig-zag" from far-apart positions so neighbors differ.
+          // 2) Add a small deterministic rotation via `seed` so different charts don't look identical.
+
+          // 12 hues roughly evenly spaced around the wheel (high contrast)
+          const baseHues = [
+            0, 210, 120, 300, 30, 240, 150, 330, 60, 270, 180, 90,
+          ];
+
+          // Zig-zag mapping: 0,6,1,7,2,8,3,9,4,10,5,11...
+          // This makes i and i+1 land far apart on the wheel.
+          const n = baseHues.length;
+          const half = Math.floor(n / 2);
+          const idx = i % n;
+          const zigzag = idx % 2 === 0 ? idx / 2 : half + Math.floor(idx / 2);
+
+          // Seed rotation (keeps contrast, changes which hue is first)
+          const rot = (((seed * 5) % n) + n) % n;
+          const hue = baseHues[(zigzag + rot) % n];
+
+          // Small lightness alternation adds extra separation if two hues still feel close
+          const sat = 78;
+          const lig = idx % 3 === 0 ? 58 : idx % 3 === 1 ? 52 : 64;
+
+          return `hsl(${hue} ${sat}% ${lig}%)`;
+        }
+
+        function buildSlices(items, total, seed) {
+          let start = -Math.PI / 2;
+          const safeTotal = total > 0 ? total : 0;
+
+          return items.map((it, idx) => {
+            const ratio = safeTotal > 0 ? it.amount / safeTotal : 0;
+            const angle = ratio * Math.PI * 2;
+            const slice = {
+              name: it.name,
+              amount: it.amount,
+              ratio,
+              start,
+              end: start + angle,
+              color: colorForIndex(idx, seed),
+            };
+            start = slice.end;
+            return slice;
+          });
+        }
+
+        function drawDonut(canvas, slices, total, centerTitle, centerValue) {
+          const ctx = canvas.getContext("2d");
+          const w = canvas.width;
+          const h = canvas.height;
+          ctx.clearRect(0, 0, w, h);
+
+          const cx = w / 2;
+          const cy = h / 2;
+          const r = Math.min(w, h) / 2 - 8;
+          const innerR = r * 0.62;
+
+          // צבע הרקע של העמוד מתוך ה-CSS
+          const pageBg =
+            getComputedStyle(document.documentElement)
+              .getPropertyValue("--bg")
+              .trim() || "#0b1220";
+
+          
+          const styles = getComputedStyle(document.documentElement);
+          const centerText = styles.getPropertyValue("--text").trim() || "#ffffff";
+          const centerSub = styles.getPropertyValue("--muted").trim() || "rgba(255,255,255,.85)";
+          const ringStroke = styles.getPropertyValue("--line").trim() || "rgba(255,255,255,.12)";
+const FONT_FAMILY = getComputedStyle(document.body).fontFamily;
+
+          // Outer subtle circle
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,255,255,.05)";
+          ctx.fill();
+
+          if (!slices.length || total <= 0) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+            ctx.fillStyle = pageBg; // 👈 צבע רקע אמיתי של העמוד
+            ctx.fill();
+
+            ctx.fillStyle = centerText;
+            ctx.font = `800 14px ${FONT_FAMILY}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("אין נתונים", cx, cy);
+
+            chartsState.set(canvas, { cx, cy, r, innerR, slices: [] });
+            return;
+          }
+
+          // Draw slices
+          for (const s of slices) {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, r, s.start, s.end);
+            ctx.closePath();
+            ctx.fillStyle = s.color;
+            ctx.fill();
+          }
+
+          // Inner hole (same as page background)
+          ctx.beginPath();
+          ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+          ctx.fillStyle = pageBg; // 👈 כאן השינוי המרכזי
+          ctx.fill();
+
+          // Outline
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.strokeStyle = ringStroke;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Center text
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          ctx.fillStyle = centerText;
+          ctx.font = `900 20px ${FONT_FAMILY}`;
+          ctx.fillText(centerValue, cx, cy - 10);
+
+          ctx.fillStyle = centerSub;
+          ctx.font = `800 13px ${FONT_FAMILY}`;
+          ctx.fillText(centerTitle, cx, cy + 16);
+
+          chartsState.set(canvas, { cx, cy, r, innerR, slices });
+        }
+
+        function pointToSlice(canvas, clientX, clientY) {
+          const st = chartsState.get(canvas);
+          if (!st || !st.slices || !st.slices.length) return null;
+
+          const rect = canvas.getBoundingClientRect();
+          const x = (clientX - rect.left) * (canvas.width / rect.width);
+          const y = (clientY - rect.top) * (canvas.height / rect.height);
+
+          const dx = x - st.cx;
+          const dy = y - st.cy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > st.r || dist < st.innerR) return null;
+
+          let ang = Math.atan2(dy, dx);
+          ang = (ang + Math.PI * 2) % (Math.PI * 2);
+          const start0 = (-Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+
+          let rel = ang - start0;
+          if (rel < 0) rel += Math.PI * 2;
+          const absAng = -Math.PI / 2 + rel;
+
+          for (const s of st.slices) {
+            if (absAng >= s.start && absAng <= s.end) return s;
+          }
+          return null;
+        }
+
+        function showTooltip(clientX, clientY, name, amount, ratio) {
+          els.tooltipName.textContent = name;
+          els.tooltipSub.textContent = `${formatILS(amount)} • ${formatPct(ratio * 100)}`;
+          els.tooltip.style.display = "block";
+          els.tooltip.setAttribute("aria-hidden", "false");
+
+          const pad = 14;
+          const offset = 14;
+
+          let left = clientX + offset;
+          let top = clientY + offset;
+
+          els.tooltip.style.left = left + "px";
+          els.tooltip.style.top = top + "px";
+
+          const r = els.tooltip.getBoundingClientRect();
+          if (left + r.width > window.innerWidth - pad)
+            left = clientX - r.width - offset;
+          if (top + r.height > window.innerHeight - pad)
+            top = clientY - r.height - offset;
+
+          els.tooltip.style.left = left + "px";
+          els.tooltip.style.top = top + "px";
+        }
+
+        function hideTooltip() {
+          els.tooltip.style.display = "none";
+          els.tooltip.setAttribute("aria-hidden", "true");
+        }
+
+        function wireCanvasHover(canvas) {
+          canvas.addEventListener("mousemove", (e) => {
+            const s = pointToSlice(canvas, e.clientX, e.clientY);
+            if (!s) {
+              hideTooltip();
+              return;
+            }
+            showTooltip(e.clientX, e.clientY, s.name, s.amount, s.ratio);
+          });
+          canvas.addEventListener("mouseleave", () => hideTooltip());
+        }
+
+        function updateAll() {
+          const { totalIncome, totalExpenses, net, savings } = computeTotals();
+
+          els.totalIncome.textContent = formatILS(totalIncome);
+          els.totalExpenses.textContent = formatILS(totalExpenses);
+          els.netBalance.textContent = formatILS(net);
+          els.savingsRate.textContent =
+            (isFinite(savings) ? savings : 0).toFixed(1) + "%";
+          setBalanceClass(net, totalIncome, totalExpenses);
+
+          const usedPct =
+            totalIncome > 0
+              ? Math.min((totalExpenses / totalIncome) * 100, 100)
+              : 0;
+          const remainingPct = 100 - usedPct;
+
+          els.expensesPercent.textContent = formatPct(usedPct);
+          els.remainingPercent.textContent = formatPct(remainingPct);
+          els.utilizationSub.textContent = `הוצאות: ${formatPct(usedPct)} • נשאר: ${formatPct(remainingPct)}`;
+          els.utilizationTotal.textContent = `הכנסות: ${formatILS(totalIncome)}`;
+
+          const utilItems = [
+            { name: "הוצאות", amount: Math.max(0, totalExpenses) },
+            { name: "נשאר", amount: Math.max(0, totalIncome - totalExpenses) },
+          ].filter((x) => x.amount > 0);
+          const utilTotal = utilItems.reduce((s, x) => s + x.amount, 0);
+          const utilSlices = buildSlices(utilItems, utilTotal, 11);
+          drawDonut(
+            els.utilizationCanvas,
+            utilSlices,
+            utilTotal,
+            "מההכנסות",
+            formatPct(usedPct),
+          );
+
+          const incomeB = getBreakdown(els.incomeList);
+          const expenseB = getBreakdown(els.expenseList);
+
+          els.incomePieTotal.textContent = "סה״כ: " + formatILS(incomeB.total);
+          els.expensePieTotal.textContent =
+            "סה״כ: " + formatILS(expenseB.total);
+
+          els.incomePieCount.textContent = String(incomeB.items.length);
+          els.expensePieCount.textContent = String(expenseB.items.length);
+
+          els.incomePieTop.textContent = incomeB.top;
+          els.expensePieTop.textContent = expenseB.top;
+
+          const incomeSlices = buildSlices(incomeB.items, incomeB.total, 3);
+          const expenseSlices = buildSlices(expenseB.items, expenseB.total, 7);
+
+          drawDonut(
+            els.incomePieCanvas,
+            incomeSlices,
+            incomeB.total,
+            "סה״כ",
+            formatILS(incomeB.total),
+          );
+          drawDonut(
+            els.expensePieCanvas,
+            expenseSlices,
+            expenseB.total,
+            "סה״כ",
+            formatILS(expenseB.total),
+          );
+
+          // NEW: expenses-by-category but as % of income (adds "נשאר" slice to complete 100%)
+          const incomeTotal = totalIncome;
+          const baseItems = expenseB.items.map((it) => ({
+            name: it.name,
+            amount: it.amount,
+          }));
+          const remainingAmt = Math.max(0, incomeTotal - totalExpenses);
+
+          const scaled =
+            incomeTotal > 0
+              ? baseItems.map((it) => ({
+                  name: it.name,
+                  amount: Math.min(it.amount, incomeTotal),
+                }))
+              : [];
+
+          const scaledSum = scaled.reduce((s, x) => s + x.amount, 0);
+          const cappedSum = Math.min(scaledSum, incomeTotal);
+
+          const expensesOfIncomeItems =
+            incomeTotal > 0
+              ? [
+                  ...scaled,
+                  ...(remainingAmt > 0
+                    ? [{ name: "נשאר", amount: remainingAmt }]
+                    : []),
+                ]
+              : [];
+
+          const expensesOfIncomeTotal = incomeTotal > 0 ? incomeTotal : 0;
+          const expensesOfIncomeSlices = buildSlices(
+            expensesOfIncomeItems,
+            expensesOfIncomeTotal,
+            19,
+          );
+
+          els.expensesOfIncomeSub.textContent = `מתוך ${formatILS(incomeTotal)} הכנסות`;
+          els.expensesOfIncomeTotal.textContent = `הוצאות: ${formatILS(totalExpenses)}`;
+          els.expensesOfIncomeUsedPct.textContent = formatPct(usedPct);
+          els.expensesOfIncomeRemainingPct.textContent =
+            formatPct(remainingPct);
+
+          drawDonut(
+            els.expensesOfIncomeCanvas,
+            expensesOfIncomeSlices,
+            expensesOfIncomeTotal,
+            "מתוך הכנסה",
+            formatPct(usedPct),
+          );
+        }
+
+        function makeRowFromTemplate(templateEl, nameText) {
+          const fragment = templateEl.content.cloneNode(true);
+          const row = fragment.querySelector(".row");
+          const nameEl =
+            row.querySelector('[data-field="name"]') ||
+            row.querySelector(".name");
+          if (nameEl) nameEl.textContent = nameText;
+          return row;
+        }
+
+        function attachRowBehavior(row) {
+          const input = row.querySelector('input[data-field="amount"]');
+          const removeBtn = row.querySelector('[data-action="remove"]');
+
+          if (input) {
+            input.addEventListener("input", updateAll);
+            input.addEventListener("change", updateAll);
+          }
+          if (removeBtn) {
+            removeBtn.addEventListener("click", () => {
+              row.remove();
+              updateAll();
+            });
+          }
+        }
+
+        function attachExistingRows() {
+          getRows(els.incomeList).forEach(attachRowBehavior);
+          getRows(els.expenseList).forEach(attachRowBehavior);
+        }
+
+        function addIncomeCategory(name) {
+          const clean = (name || "").trim();
+          if (!clean) return;
+          const row = makeRowFromTemplate(els.incomeTemplate, clean);
+          els.incomeList.appendChild(row);
+          attachRowBehavior(row);
+          updateAll();
+        }
+
+        function addExpenseCategory(name) {
+          const clean = (name || "").trim();
+          if (!clean) return;
+          const row = makeRowFromTemplate(els.expenseTemplate, clean);
+          els.expenseList.appendChild(row);
+          attachRowBehavior(row);
+          updateAll();
+        }
+
+        function makeExportObject() {
+          const income = getRows(els.incomeList).map((row) => {
+            const name = (row.querySelector(".name")?.textContent || "").trim();
+            const amount = parseAmount(
+              row.querySelector('input[data-field="amount"]'),
+            );
+            return { name, amount };
+          });
+
+          const expenses = getRows(els.expenseList).map((row) => {
+            const name = (row.querySelector(".name")?.textContent || "").trim();
+            const amount = parseAmount(
+              row.querySelector('input[data-field="amount"]'),
+            );
+            return { name, amount };
+          });
+
+          return {
+            schema: "income-expenses-v4",
+            createdAt: new Date().toISOString(),
+            currency: "ILS",
+            income,
+            expenses,
+          };
+        }
+
+        function applyImportObject(obj) {
+          if (!obj || obj.schema !== "income-expenses-v4") {
+            throw new Error(
+              "Invalid JSON schema. Expected schema: income-expenses-v4",
+            );
+          }
+          if (!Array.isArray(obj.income) || !Array.isArray(obj.expenses)) {
+            throw new Error(
+              "Invalid JSON format. Expected arrays: income, expenses",
+            );
+          }
+
+          els.incomeList.innerHTML = "";
+          els.expenseList.innerHTML = "";
+
+          obj.income.forEach((it) => {
+            const name = String(it?.name ?? "").trim() || "כותרת";
+            const row = makeRowFromTemplate(els.incomeTemplate, name);
+            const input = row.querySelector('input[data-field="amount"]');
+            if (input) input.value = Number(it?.amount) || 0;
+            els.incomeList.appendChild(row);
+            attachRowBehavior(row);
+          });
+
+          obj.expenses.forEach((it) => {
+            const name = String(it?.name ?? "").trim() || "כותרת";
+            const row = makeRowFromTemplate(els.expenseTemplate, name);
+            const input = row.querySelector('input[data-field="amount"]');
+            if (input) input.value = Number(it?.amount) || 0;
+            els.expenseList.appendChild(row);
+            attachRowBehavior(row);
+          });
+
+          updateAll();
+        }
+
+        function downloadJson(filename, dataObj) {
+          const blob = new Blob([JSON.stringify(dataObj, null, 2)], {
+            type: "application/json",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        function handleSaveToFile() {
+          const obj = makeExportObject();
+          const date = new Date();
+          const stamp = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, "0"),
+            String(date.getDate()).padStart(2, "0"),
+          ].join("-");
+          const suggestedName = `budget-${stamp}.json`;
+
+          const jsonText = JSON.stringify(obj, null, 2);
+
+          (async () => {
+            try {
+              if (window.showSaveFilePicker && window.isSecureContext) {
+                const handle = await window.showSaveFilePicker({
+                  suggestedName,
+                  types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+                  excludeAcceptAllOption: true,
+                });
+                const writable = await handle.createWritable();
+                await writable.write(new Blob([jsonText], { type: "application/json" }));
+                await writable.close();
+                try { localStorage.setItem(STORAGE_KEY, jsonText); } catch (_) {}
+                return;
+              }
+            } catch (err) {
+              if (err && (err.name === "AbortError" || err.name === "NotAllowedError")) return;
+            }
+
+            downloadJson(suggestedName, obj);
+            try { localStorage.setItem(STORAGE_KEY, jsonText); } catch (_) {}
+          })();
+        }
+
+        function handleLoadFromFilePicker() {
+          els.fileInput.value = "";
+          els.fileInput.click();
+        }
+
+        function handleFileChosen(file) {
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const obj = JSON.parse(String(reader.result || ""));
+              applyImportObject(obj);
+              els.loadedFileName.textContent = file.name.replace(/\.json$/i, "");
+              els.loadedFileInfo.style.display = "block";
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+              } catch (_) {}
+            } catch (err) {
+              alert("קובץ לא תקין: " + (err?.message || "שגיאה"));
+            }
+          };
+          reader.readAsText(file);
+        }
+
+        function resetAll() {
+          if (els.loadedFileInfo) {
+            els.loadedFileInfo.style.display = "none";
+            els.loadedFileName.textContent = "";
+          }
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch (_) {}
+          location.reload();
+        }
+
+        function tryAutoLoadFromLocalStorage() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const obj = JSON.parse(raw);
+            if (obj?.schema === "income-expenses-v4") applyImportObject(obj);
+              els.loadedFileName.textContent = file.name.replace(/\.json$/i, "");
+              els.loadedFileInfo.style.display = "block";
+          } catch (_) {}
+        }
+
+        els.addIncomeCategoryBtn.addEventListener("click", () => {
+          addIncomeCategory(els.incomeNewName.value);
+          els.incomeNewName.value = "";
+          els.incomeNewName.focus();
+        });
+
+        els.addExpenseCategoryBtn.addEventListener("click", () => {
+          addExpenseCategory(els.expenseNewName.value);
+          els.expenseNewName.value = "";
+          els.expenseNewName.focus();
+        });
+
+        els.incomeNewName.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            els.addIncomeCategoryBtn.click();
+          }
+        });
+
+        els.expenseNewName.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            els.addExpenseCategoryBtn.click();
+          }
+        });
+
+        els.recalcBtn.addEventListener("click", updateAll);
+        els.saveBtn.addEventListener("click", handleSaveToFile);
+        els.loadBtn.addEventListener("click", handleLoadFromFilePicker);
+        els.resetBtn.addEventListener("click", resetAll);
+
+        els.fileInput.addEventListener("change", (e) => {
+          const file = e.target.files && e.target.files[0];
+          handleFileChosen(file);
+        });
+
+        wireCanvasHover(els.incomePieCanvas);
+        wireCanvasHover(els.expensePieCanvas);
+        wireCanvasHover(els.utilizationCanvas);
+        wireCanvasHover(els.expensesOfIncomeCanvas);
+
+        attachExistingRows();
+        updateAll();
+        window.addEventListener("a11y:changed", () => { updateAll(); });
+      tryAutoLoadFromLocalStorage();
+      })();
+    </script>
+  
+    <script>
+      (function(){
+        const KEY = "a11y-settings-v2";
+        const root = document.documentElement;
+
+        const btn = document.getElementById("a11yBtn");
+        const panel = document.getElementById("a11yPanel");
+        const closeBtn = document.getElementById("a11yClose");
+
+        const themeSel = document.getElementById("a11yThemeSel");
+        const scaleSel = document.getElementById("a11yScaleSel");
+        const contrastChk = document.getElementById("a11yContrastChk");
+        const underlineChk = document.getElementById("a11yUnderlineChk");
+        const motionChk = document.getElementById("a11yMotionChk");
+
+        const resetBtn = document.getElementById("a11yResetBtn");
+        const saveBtn = document.getElementById("a11ySaveBtn");
+
+        function systemTheme(){
+          try{
+            return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          }catch(_){
+            return "dark";
+          }
+        }
+
+        function openPanel(){
+          panel.hidden = false;
+          btn.setAttribute("aria-expanded","true");
+          themeSel.focus();
+        }
+        function closePanel(){
+          panel.hidden = true;
+          btn.setAttribute("aria-expanded","false");
+          btn.focus();
+        }
+
+        function applyZoom(scale){
+          // Primary: CSS zoom on .wrap
+          root.style.setProperty("--ui-scale", String(scale));
+
+          // Fallback for browsers that don't support zoom (e.g., Firefox)
+          const wrap = document.querySelector(".wrap");
+          if (!wrap) return;
+          const supportsZoom = CSS.supports && CSS.supports("zoom", "1");
+          if (!supportsZoom){
+            wrap.style.transform = `scale(${scale})`;
+            wrap.style.transformOrigin = "top center";
+            // keep layout from shrinking horizontally
+            wrap.style.width = (100/scale) + "%";
+          }else{
+            wrap.style.transform = "";
+            wrap.style.width = "";
+          }
+        }
+
+        function applySettings(s){
+          // Theme
+          const resolvedTheme = (s.theme === "auto") ? systemTheme() : s.theme;
+          root.setAttribute("data-theme", resolvedTheme);
+
+          // Contrast / underline / reduce motion
+          root.toggleAttribute("data-contrast", !!s.highContrast);
+          root.setAttribute("data-contrast", s.highContrast ? "high" : "normal");
+
+          root.setAttribute("data-underline", s.underlineLinks ? "on" : "off");
+          root.setAttribute("data-reduce-motion", s.reduceMotion ? "on" : "off");
+
+          // Scale
+          applyZoom(s.scale);
+
+          // Sync UI
+          themeSel.value = s.theme;
+          scaleSel.value = String(s.scale);
+          contrastChk.checked = !!s.highContrast;
+          underlineChk.checked = !!s.underlineLinks;
+          motionChk.checked = !!s.reduceMotion;
+
+          // Re-render charts so the donut center matches the new --bg (light/dark)
+          if (typeof window.dispatchEvent === "function"){
+            window.dispatchEvent(new Event("a11y:changed"));
+          }
+        }
+
+        function readUI(){
+          return {
+            theme: themeSel.value,
+            scale: Number(scaleSel.value) || 1,
+            highContrast: contrastChk.checked,
+            underlineLinks: underlineChk.checked,
+            reduceMotion: motionChk.checked,
+          };
+        }
+
+        function load(){
+          try{
+            const raw = localStorage.getItem(KEY);
+            return raw ? JSON.parse(raw) : null;
+          }catch(_){
+            return null;
+          }
+        }
+        function save(s){
+          try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(_){}
+        }
+        function defaults(){
+          return { theme:"auto", scale:1, highContrast:false, underlineLinks:false, reduceMotion:false };
+        }
+
+        // Events
+        btn.addEventListener("click", () => panel.hidden ? openPanel() : closePanel());
+        closeBtn.addEventListener("click", closePanel);
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !panel.hidden) closePanel();
+        });
+
+        // Live preview
+        [themeSel, scaleSel, contrastChk, underlineChk, motionChk].forEach(el => {
+          el.addEventListener("change", () => applySettings(readUI()));
+        });
+
+        saveBtn.addEventListener("click", () => { const s = readUI(); save(s); closePanel(); });
+        resetBtn.addEventListener("click", () => { const s = defaults(); save(s); applySettings(s); });
+
+        // Init
+        const s = load() || defaults();
+        applySettings(s);
+
+        // If system theme changes while on auto, update
+        try{
+          const mq = window.matchMedia("(prefers-color-scheme: light)");
+          mq.addEventListener("change", () => {
+            const cur = readUI();
+            if (cur.theme === "auto") applySettings(load() || defaults());
+          });
+        }catch(_){}
+      })();
+    </script>
+
+  </body>
+</html>

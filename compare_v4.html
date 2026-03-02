@@ -1,0 +1,1412 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>השוואת שמירות - תקציב</title>
+  <style>
+
+      :root {
+        --bg: #0b1220;
+        --text: #eaf0ff;
+        --muted: #a8b3d6;
+        --line: rgba(255, 255, 255, 0.1);
+        --shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        --radius: 18px;
+        --focus: 0 0 0 3px rgba(118, 169, 255, 0.35);
+        --good: #2ee59d;
+        --bad: #ff5b6e;
+        --warn: #ffcf5b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(
+            900px 400px at 15% 10%,
+            rgba(118, 169, 255, 0.2),
+            transparent 60%
+          ),
+          radial-gradient(
+            800px 420px at 90% 0%,
+            rgba(46, 229, 157, 0.12),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 520px at 50% 100%,
+            rgba(255, 91, 110, 0.1),
+            transparent 60%
+          ),
+          var(--bg);
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 22px 16px 60px;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button {
+        border: 1px solid var(--line);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.1),
+          rgba(255, 255, 255, 0.04)
+        );
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        transition:
+          transform 0.08s ease,
+          border-color 0.15s ease;
+        font-weight: 700;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+      button:focus {
+        outline: none;
+        box-shadow:
+          var(--focus),
+          0 10px 24px rgba(0, 0, 0, 0.18);
+      }
+      .btn-primary {
+        background: linear-gradient(
+          180deg,
+          rgba(118, 169, 255, 0.28),
+          rgba(118, 169, 255, 0.1)
+        );
+        border-color: rgba(118, 169, 255, 0.35);
+      }
+      .btn-danger {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 91, 110, 0.26),
+          rgba(255, 91, 110, 0.1)
+        );
+        border-color: rgba(255, 91, 110, 0.35);
+      }
+      .file-hidden {
+        display: none;
+      }
+
+      .card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.03)
+        );
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 14px 14px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0)
+        );
+      }
+      .card-header h2 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+      .card-body {
+        padding: 14px;
+      }
+
+      .charts-card .card-body {
+        padding: 12px;
+      }
+
+      .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: stretch;
+      }
+      @media (max-width: 1100px) {
+        .charts-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 600px) {
+        .charts-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .chart {
+        background: rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+      .chart-top {
+        min-height: 3.6em; /* מספיק ל-3 שורות */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .chart-title {
+        font-weight: 900;
+        font-size: 13px;
+        letter-spacing: 0.2px;
+      }
+      .chart-sub {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .canvas-wrap {
+        width: 100%;
+        display: grid;
+        place-items: center;
+        padding: 2px 0;
+      }
+      canvas {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .legend strong {
+        color: var(--text);
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 900px) {
+        .summary {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 520px) {
+        .summary {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .pill {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px 12px;
+      }
+      .pill .label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pill .value {
+        font-size: 18px;
+        margin-top: 6px;
+        font-weight: 900;
+      }
+      .value.good {
+        color: #2ee59d;
+      }
+      .value.bad {
+        color: #ff5b6e;
+      }
+      .value.warn {
+        color: #ffcf5b;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .table {
+        display: grid;
+        gap: 10px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 140px 44px;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.12);
+        align-items: center;
+      }
+      .row .name {
+        color: var(--text);
+        font-weight: 700;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 10px;
+        color: var(--text);
+        outline: none;
+      }
+      .row input:focus {
+        box-shadow: var(--focus);
+        border-color: rgba(118, 169, 255, 0.35);
+      }
+      .icon-btn {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        user-select: none;
+      }
+      .icon-btn:hover {
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .addbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .addbar input {
+        flex: 1;
+        min-width: 180px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 10px;
+        color: var(--text);
+        outline: none;
+      }
+      .addbar input:focus {
+        box-shadow: var(--focus);
+        border-color: rgba(118, 169, 255, 0.35);
+      }
+      .hint {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      #chartTooltip {
+        position: fixed;
+        display: none;
+        z-index: 9999;
+        pointer-events: none;
+        padding: 10px 10px;
+        border-radius: 12px;
+        background: rgba(9, 14, 26, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.35;
+        backdrop-filter: blur(8px);
+        max-width: 260px;
+        white-space: nowrap;
+      }
+      #chartTooltip .t-name {
+        font-weight: 900;
+      }
+      #chartTooltip .t-sub {
+        color: rgba(168, 179, 214, 0.95);
+        margin-top: 4px;
+        font-weight: 700;
+      }
+    
+      /* =========================
+         Accessibility Widget + Themes
+         ========================= */
+      :root{
+        --ui-scale: 1; /* 0.9..1.3 */
+      }
+
+      /* Make text-size control actually affect the whole UI (works in Chromium).
+         Fallback for browsers without zoom is handled in JS. */
+      .wrap{
+        zoom: var(--ui-scale);
+        transform-origin: top center;
+      }
+
+      /* Theme variable extensions */
+      :root{
+        --surface-1: rgba(255,255,255,.06);
+        --surface-2: rgba(255,255,255,.03);
+        --surface-3: rgba(255,255,255,.04);
+        --panel: rgba(9,14,26,.92);
+        --row-bg: rgba(0,0,0,.12);
+        --chart-bg: rgba(0,0,0,.10);
+        --tooltip-text: var(--text);
+        --tooltip-sub: rgba(168,179,214,.95);
+      }
+
+      /* Wire the existing UI to the variables so light mode can flip correctly */
+      body{ background: 
+          radial-gradient(900px 400px at 15% 10%, rgba(118, 169, 255, 0.2), transparent 60%),
+          radial-gradient(800px 420px at 90% 0%, rgba(46, 229, 157, 0.12), transparent 55%),
+          radial-gradient(900px 520px at 50% 100%, rgba(255, 91, 110, 0.1), transparent 60%),
+          var(--bg);
+      }
+      button{ color: var(--text); }
+      .card{
+        background: linear-gradient(180deg, var(--surface-1), var(--surface-2));
+      }
+      .pill{ background: var(--surface-3); }
+      .row{ background: var(--row-bg); }
+      .chart{ background: var(--chart-bg); }
+      #chartTooltip{
+        background: var(--panel);
+        color: var(--tooltip-text);
+      }
+      #chartTooltip .t-sub{ color: var(--tooltip-sub); }
+
+      /* Focus visibility (keyboard) */
+      :focus-visible{
+        outline: none;
+        box-shadow: var(--focus);
+      }
+
+      /* Light theme overrides */
+      :root[data-theme="light"]{
+        --bg:#f6f8ff;
+        --text:#0b1220;
+        --muted:#405073;
+        --line: rgba(0,0,0,.10);
+        --shadow: 0 16px 40px rgba(0,0,0,.12);
+
+        --surface-1: rgba(0,0,0,.03);
+        --surface-2: rgba(0,0,0,.015);
+        --surface-3: rgba(0,0,0,.02);
+        --panel: rgba(255,255,255,.95);
+        --row-bg: rgba(0,0,0,.05);
+        --chart-bg: rgba(0,0,0,.04);
+        --tooltip-text: #0b1220;
+        --tooltip-sub: rgba(64,80,115,.95);
+      }
+
+      /* High contrast mode (works for both themes) */
+      :root[data-contrast="high"]{
+        --line: rgba(255,255,255,.35);
+      }
+      :root[data-theme="light"][data-contrast="high"]{
+        --line: rgba(0,0,0,.28);
+      }
+      :root[data-contrast="high"] .card,
+      :root[data-contrast="high"] .row,
+      :root[data-contrast="high"] .pill,
+      :root[data-contrast="high"] .chart{
+        border-width: 2px;
+      }
+
+      /* Link underline toggle */
+      :root[data-underline="on"] a{
+        text-decoration: underline;
+        text-underline-offset: .18em;
+        text-decoration-thickness: 2px;
+      }
+
+      /* Reduce motion toggle */
+      :root[data-reduce-motion="on"] *{
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      /* Floating accessibility widget */
+      #a11yWidget{
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        z-index: 100000;
+      }
+      #a11yBtn{
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+        color: var(--text);
+        cursor: pointer;
+        box-shadow: 0 14px 30px rgba(0,0,0,.30);
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        font-weight: 900;
+      }
+      #a11yBtn:hover{ transform: translateY(-1px); }
+      #a11yBtn:focus{ outline:none; box-shadow: var(--focus), 0 14px 30px rgba(0,0,0,.30); }
+
+      #a11yPanel{
+        margin-top: 10px;
+        width: 320px;
+        max-width: calc(100vw - 32px);
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--text);
+        box-shadow: 0 20px 44px rgba(0,0,0,.35);
+        backdrop-filter: blur(10px);
+        padding: 12px;
+      }
+      #a11yPanel[hidden]{ display:none; }
+
+      .a11yHeader{
+        display:flex;
+        align-items:center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .a11yHeader strong{ font-size: 14px; letter-spacing:.2px; }
+      .a11yClose{
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,.06);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 6px 10px;
+        cursor:pointer;
+        font-weight: 900;
+      }
+
+      .a11yRow{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 10px;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+      .a11yRow:first-of-type{ border-top: 0; }
+      .a11yRow label{
+        font-weight: 900;
+        font-size: 12px;
+        color: var(--text);
+      }
+      .a11yRow small{
+        display:block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .a11yRow select,
+      .a11yRow input[type="checkbox"]{
+        accent-color: rgba(118,169,255,.9);
+      }
+      .a11yRow select{
+        width: 140px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 10px;
+        outline:none;
+      }
+
+      
+      /* Fix select/option colors across themes (some browsers don't inherit correctly) */
+      #a11yPanel select{ color: var(--text) !important; }
+      #a11yPanel option{ color: #eaf0ff; background: #0b1220; }
+      :root[data-theme="light"] #a11yPanel option{ color:#0b1220; background:#ffffff; }
+      :root[data-theme="light"] #a11yPanel select{ background:#ffffff; border-color: var(--line); }
+.a11yActions{
+        display:flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .a11yActions button{
+        flex:1;
+        border-radius: 12px;
+        padding: 10px 10px;
+        font-weight: 900;
+      }
+
+      /* Screen-reader only helper */
+      .sr-only{
+        position:absolute !important;
+        width:1px !important;
+        height:1px !important;
+        padding:0 !important;
+        margin:-1px !important;
+        overflow:hidden !important;
+        clip:rect(0,0,0,0) !important;
+        white-space:nowrap !important;
+        border:0 !important;
+      }
+
+    
+    .nav-btn{
+      display:inline-block;
+      text-decoration:none;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+      transition: transform .08s ease, border-color .15s ease;
+      font-weight:700;
+    }
+    .nav-btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+    .nav-btn:focus{ outline:none; box-shadow: var(--focus), 0 10px 24px rgba(0,0,0,.18); }
+
+  
+    /* Ensure selects/options readable in both themes */
+    select{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+    option{ background: var(--bg); color: var(--text); }
+    :root[data-theme="light"] option{ background: #f6f8ff; color: #0b1220; }
+
+    .files-wrap{ display:grid; gap:10px; }
+    .file-chip{
+      display:flex; gap:10px; align-items:stretch;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(0,0,0,.10);
+    }
+    :root[data-theme="light"] .file-chip{ background: rgba(0,0,0,.03); }
+    .icon-btn.mini{ width:44px; height:44px; }
+    .chip-main{ flex:1; min-width:0; }
+    .chip-top{ display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .chip-label{
+      flex:1; min-width:160px;
+      background: rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding:10px;
+      color: var(--text);
+      font-weight: 800;
+      outline:none;
+    }
+    .chip-file{ color: var(--muted); font-weight: 800; font-size: 12px; }
+    .chip-sub{ margin-top:6px; color: var(--muted); font-size: 12px; font-weight:700; }
+
+    .compare-controls{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width: 800px){ .compare-controls{ grid-template-columns: 1fr; } }
+    .label{ color: var(--muted); font-size: 12px; font-weight:800; margin-bottom:6px; }
+
+    .compare-list{ display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+    .check-row{
+      display:flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.04);
+      cursor:pointer;
+      user-select:none;
+      font-weight:800;
+      color: var(--text);
+    }
+    .check-row input{ width:18px; height:18px; }
+    .conclusions{ display:grid; gap:8px; }
+    .section-title{ margin-top:10px; font-weight:900; }
+    .conclusion{ padding:10px; border:1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.04); }
+
+    .diff-table{
+      width:100%;
+      border-collapse: collapse;
+      min-width: 680px;
+    }
+    .diff-table th, .diff-table td{
+      text-align:right;
+      padding:10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .diff-table th{ color: var(--muted); font-weight: 900; }
+    .diff-table td.pos{ color: var(--bad); font-weight: 900; }
+    .diff-table td.neg{ color: var(--good); font-weight: 900; }
+    .pair-sep{
+      color: var(--muted);
+      font-weight: 900;
+      padding-top: 14px !important;
+    }
+
+  
+      /* Compare page: make selects look like the rest of the UI */
+      select{
+        background: rgba(255,255,255,.04);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 10px;
+        color: var(--text);
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+      }
+      select:focus{
+        box-shadow: var(--focus);
+        border-color: rgba(118,169,255,.35);
+      }
+      /* Ensure option colors are readable in both themes */
+      select option{
+        background: var(--bg);
+        color: var(--text);
+      }
+      .select-wrap{
+        position: relative;
+        min-width: 220px;
+      }
+      .select-wrap::after{
+        content: "▾";
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        pointer-events: none;
+        font-weight: 900;
+      }
+      .select-wrap select{
+        width: 100%;
+        padding-left: 34px; /* space for arrow */
+      }
+
+    
+      /* Compare tables styling */
+      table td{
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+      table tbody tr:hover{
+        background: rgba(255,255,255,.04);
+      }
+      .pos{ color: var(--good); font-weight: 900; }
+      .neg{ color: var(--bad); font-weight: 900; }
+
+    
+    /* Dropdown: show arrow indicator and match UI */
+    select{
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23a8b3d6' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 12px center;
+      background-size: 18px 18px;
+      padding-left: 38px;
+    }
+    :root[data-theme="light"] select{
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23405073' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    }
+
+  
+    /* ---- Compare: font consistency ---- */
+    select, option, .pill, .pill .label, .pill .value, .card-header, .card-header h2, .section-title, .conclusion, .check-row, .chip-label{
+      font-family: inherit;
+    }
+    /* Compare: make pos/neg colors match meaning */
+    .diff-table td.pos{ color: var(--good) !important; font-weight: 900; }
+    .diff-table td.neg{ color: var(--bad) !important; font-weight: 900; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Accessibility widget (floating) -->
+    <div id="a11yWidget" aria-label="כלי נגישות">
+      <button id="a11yBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="a11yPanel" title="נגישות">♿</button>
+      <section id="a11yPanel" role="dialog" aria-label="הגדרות נגישות" hidden>
+        <div class="a11yHeader">
+          <strong>נגישות</strong>
+          <button id="a11yClose" class="a11yClose" type="button">סגור</button>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yThemeSel">מצב תצוגה</label>
+            <small>כהה / בהיר / אוטומטי לפי המכשיר</small>
+          </div>
+          <select id="a11yThemeSel">
+            <option value="auto">אוטומטי</option>
+            <option value="dark">כהה</option>
+            <option value="light">בהיר</option>
+          </select>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yScaleSel">גודל טקסט</label>
+            <small>מגדיל/מקטין את כל הממשק</small>
+          </div>
+          <select id="a11yScaleSel">
+            <option value="0.9">קטן</option>
+            <option value="1" selected>רגיל</option>
+            <option value="1.1">גדול</option>
+            <option value="1.2">גדול מאוד</option>
+            <option value="1.3">מקסימלי</option>
+          </select>
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yContrastChk">ניגודיות מוגברת</label>
+            <small>מחדד קווים/מסגרות לתצוגה ברורה יותר</small>
+          </div>
+          <input id="a11yContrastChk" type="checkbox" />
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yUnderlineChk">קו תחתון לקישורים</label>
+            <small>עוזר לזהות קישורים במהירות</small>
+          </div>
+          <input id="a11yUnderlineChk" type="checkbox" />
+        </div>
+
+        <div class="a11yRow">
+          <div>
+            <label for="a11yMotionChk">הפחתת תנועה</label>
+            <small>מבטל אנימציות ומעברים</small>
+          </div>
+          <input id="a11yMotionChk" type="checkbox" />
+        </div>
+
+        <div class="a11yActions">
+          <button id="a11yResetBtn" type="button">איפוס</button>
+          <button id="a11ySaveBtn" class="btn-primary" type="button">שמירה</button>
+        </div>
+      </section>
+    </div>
+
+<div class="wrap">
+    <header>
+      <div>
+        <h1>השוואת שמירות (חודשים)</h1>
+        <div class="sub">העלה 2 קבצי JSON או יותר (בפורמט income-expenses-v4) והשווה מול קובץ בסיס.</div>
+      </div>
+      <div class="toolbar">
+        <a class="nav-btn" href="home_v4.html">בית</a>
+        <a class="nav-btn" href="month_v4.html">חישוב חודש</a>
+        <button id="addFilesBtn" class="btn-primary" type="button">הוסף קבצים</button>
+        <input id="compareFileInput" class="file-hidden" type="file" accept="application/json,.json" multiple />
+      </div>
+    </header>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card-header">
+        <h2>קבצים שהועלו</h2>
+        <div class="hint">תן שם לכל קובץ (ינואר/פברואר וכו׳). זה יופיע במסקנות.</div>
+      </div>
+      <div class="card-body">
+        <div class="addbar" style="margin-top:0; border-top:0; padding-top:0;">
+          <button id="addFilesBtn2" class="btn-primary" type="button">העלה קבצי JSON</button>
+          <span class="hint" style="margin:0;">אפשר לבחור כמה קבצים ביחד. רק JSON בפורמט income-expenses-v4.</span>
+        </div>
+
+        <div id="filesWrap" class="files-wrap"></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card-header">
+        <h2>בחירת בסיס והשוואה</h2>
+        <div class="hint" id="compareHint">העלה לפחות 2 קבצים כדי להשוות.</div>
+      </div>
+      <div class="card-body">
+        
+        <div class="compare-controls" style="grid-template-columns: 1fr;">
+          <div>
+            <div class="label">קובץ בסיס (ממנו משווים)</div>
+            <select id="baseSelect"></select>
+          </div>
+        </div>
+
+        <div class="label" style="margin-top:12px;">השווה מול:</div>
+    
+        <div id="compareList" class="compare-list"></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card-header"><h2>סיכום מהיר</h2></div>
+      <div class="card-body">
+        <div class="summary">
+          <div class="pill"><div class="label">בסיס</div><div id="totalsA" class="value">-</div></div>
+          <div class="pill"><div class="label">מול</div><div id="totalsB" class="value">-</div></div>
+          <div class="pill"><div class="label">הפרש</div><div id="totalsNet" class="value">-</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card-header"><h2>מסקנות</h2></div>
+      <div class="card-body">
+        <div id="conclusions" class="conclusions"></div>
+      </div>
+    </section>
+
+    
+    <section class="card" style="margin-top:14px;">
+      <div class="card-header"><h2>טבלת שינויים - הכנסות</h2></div>
+      <div class="card-body" style="overflow:auto;">
+        <table class="diff-table" aria-label="טבלת שינויים בהכנסות">
+          <thead>
+            <tr>
+              <th>קטגוריה</th><th id="incomeThBase">בסיס</th><th id="incomeThOther">מול</th><th>הפרש</th>
+            </tr>
+          </thead>
+          <tbody id="incomeBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card-header"><h2>טבלת שינויים - הוצאות</h2></div>
+      <div class="card-body" style="overflow:auto;">
+        <table class="diff-table" aria-label="טבלת שינויים בהוצאות">
+          <thead>
+            <tr>
+              <th>קטגוריה</th><th id="expenseThBase">בסיס</th><th id="expenseThOther">מול</th><th>הפרש</th>
+            </tr>
+          </thead>
+          <tbody id="expenseBody"></tbody>
+        </table>
+      </div>
+    </section>
+    
+  </div>
+
+  <script>
+
+      (function(){
+        const KEY = "a11y-settings-v2";
+        const root = document.documentElement;
+
+        const btn = document.getElementById("a11yBtn");
+        const panel = document.getElementById("a11yPanel");
+        const closeBtn = document.getElementById("a11yClose");
+
+        const themeSel = document.getElementById("a11yThemeSel");
+        const scaleSel = document.getElementById("a11yScaleSel");
+        const contrastChk = document.getElementById("a11yContrastChk");
+        const underlineChk = document.getElementById("a11yUnderlineChk");
+        const motionChk = document.getElementById("a11yMotionChk");
+
+        const resetBtn = document.getElementById("a11yResetBtn");
+        const saveBtn = document.getElementById("a11ySaveBtn");
+
+        function systemTheme(){
+          try{
+            return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          }catch(_){
+            return "dark";
+          }
+        }
+
+        function openPanel(){
+          panel.hidden = false;
+          btn.setAttribute("aria-expanded","true");
+          themeSel.focus();
+        }
+        function closePanel(){
+          panel.hidden = true;
+          btn.setAttribute("aria-expanded","false");
+          btn.focus();
+        }
+
+        function applyZoom(scale){
+          // Primary: CSS zoom on .wrap
+          root.style.setProperty("--ui-scale", String(scale));
+
+          // Fallback for browsers that don't support zoom (e.g., Firefox)
+          const wrap = document.querySelector(".wrap");
+          if (!wrap) return;
+          const supportsZoom = CSS.supports && CSS.supports("zoom", "1");
+          if (!supportsZoom){
+            wrap.style.transform = `scale(${scale})`;
+            wrap.style.transformOrigin = "top center";
+            // keep layout from shrinking horizontally
+            wrap.style.width = (100/scale) + "%";
+          }else{
+            wrap.style.transform = "";
+            wrap.style.width = "";
+          }
+        }
+
+        function applySettings(s){
+          // Theme
+          const resolvedTheme = (s.theme === "auto") ? systemTheme() : s.theme;
+          root.setAttribute("data-theme", resolvedTheme);
+
+          // Contrast / underline / reduce motion
+          root.toggleAttribute("data-contrast", !!s.highContrast);
+          root.setAttribute("data-contrast", s.highContrast ? "high" : "normal");
+
+          root.setAttribute("data-underline", s.underlineLinks ? "on" : "off");
+          root.setAttribute("data-reduce-motion", s.reduceMotion ? "on" : "off");
+
+          // Scale
+          applyZoom(s.scale);
+
+          // Sync UI
+          themeSel.value = s.theme;
+          scaleSel.value = String(s.scale);
+          contrastChk.checked = !!s.highContrast;
+          underlineChk.checked = !!s.underlineLinks;
+          motionChk.checked = !!s.reduceMotion;
+
+          // Re-render charts so the donut center matches the new --bg (light/dark)
+          if (typeof window.dispatchEvent === "function"){
+            window.dispatchEvent(new Event("a11y:changed"));
+          }
+        }
+
+        function readUI(){
+          return {
+            theme: themeSel.value,
+            scale: Number(scaleSel.value) || 1,
+            highContrast: contrastChk.checked,
+            underlineLinks: underlineChk.checked,
+            reduceMotion: motionChk.checked,
+          };
+        }
+
+        function load(){
+          try{
+            const raw = localStorage.getItem(KEY);
+            return raw ? JSON.parse(raw) : null;
+          }catch(_){
+            return null;
+          }
+        }
+        function save(s){
+          try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(_){}
+        }
+        function defaults(){
+          return { theme:"auto", scale:1, highContrast:false, underlineLinks:false, reduceMotion:false };
+        }
+
+        // Events
+        btn.addEventListener("click", () => panel.hidden ? openPanel() : closePanel());
+        closeBtn.addEventListener("click", closePanel);
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !panel.hidden) closePanel();
+        });
+
+        // Live preview
+        [themeSel, scaleSel, contrastChk, underlineChk, motionChk].forEach(el => {
+          el.addEventListener("change", () => applySettings(readUI()));
+        });
+
+        saveBtn.addEventListener("click", () => { const s = readUI(); save(s); closePanel(); });
+        resetBtn.addEventListener("click", () => { const s = defaults(); save(s); applySettings(s); });
+
+        // Init
+        const s = load() || defaults();
+        applySettings(s);
+
+        // If system theme changes while on auto, update
+        try{
+          const mq = window.matchMedia("(prefers-color-scheme: light)");
+          mq.addEventListener("change", () => {
+            const cur = readUI();
+            if (cur.theme === "auto") applySettings(load() || defaults());
+          });
+        }catch(_){}
+      })();
+    </script>
+  <script>
+    (function(){
+      const $ = (id) => document.getElementById(id);
+
+            const els = {
+        fileInput: $("compareFileInput"),
+        fileBtn: $("addFilesBtn"),
+        filesWrap: $("filesWrap"),
+        baseSelect: $("baseSelect"),
+        compareList: $("compareList"),
+        conclusions: $("conclusions"),
+        incomeBody: $("incomeBody"),
+        expenseBody: $("expenseBody"),
+        incomeThBase: $("incomeThBase"),
+        incomeThOther: $("incomeThOther"),
+        expenseThBase: $("expenseThBase"),
+        expenseThOther: $("expenseThOther"),
+        totalsA: $("totalsA"),
+        totalsB: $("totalsB"),
+        totalsNet: $("totalsNet"),
+        hint: $("compareHint"),
+      };
+
+      const files = []; // {id, fileName, label, data, totals:{income,expenses}, maps:{income,expenses}}
+
+      function formatILS(n){
+        const v = Number.isFinite(n) ? n : 0;
+        return "₪" + Math.round(v).toLocaleString("he-IL");
+      }
+      function safeNum(x){ const n = Number(x); return Number.isFinite(n) ? n : 0; }
+
+      function validateObj(obj){
+        return obj && obj.schema === "income-expenses-v4" && Array.isArray(obj.income) && Array.isArray(obj.expenses);
+      }
+      function buildMap(arr){
+        const m = new Map();
+        for (const it of arr){
+          const name = String(it?.name ?? "").trim();
+          if (!name) continue;
+          m.set(name, safeNum(it?.amount));
+        }
+        return m;
+      }
+      function sumMap(m){
+        let s=0; for (const v of m.values()) s += safeNum(v);
+        return s;
+      }
+      function escapeHtml(s){
+        return String(s).replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+      }
+      function modeLabel(m){
+        if (m === "expenses") return "הוצאות";
+        if (m === "income") return "הכנסות";
+        return "הכנסות והוצאות";
+      }
+
+      function refreshSelectors(){
+        const prevBase = els.baseSelect.value;
+        els.baseSelect.innerHTML = "";
+        files.forEach((f) => {
+          const opt = document.createElement("option");
+          opt.value = f.id;
+          opt.textContent = f.label;
+          els.baseSelect.appendChild(opt);
+        });
+        if (files.length){
+          els.baseSelect.value = files.some(x => x.id === prevBase) ? prevBase : files[0].id;
+        }
+
+        // compare checkboxes
+        els.compareList.innerHTML = "";
+        const baseId = els.baseSelect.value;
+        files.forEach((f) => {
+          if (f.id === baseId) return;
+          const row = document.createElement("label");
+          row.className = "check-row";
+          row.innerHTML = `<input type="checkbox" value="${f.id}" checked /> <span>${escapeHtml(f.label)}</span>`;
+          row.querySelector("input").addEventListener("change", recompute);
+          els.compareList.appendChild(row);
+        });
+      }
+
+      function refreshUI(){
+        els.filesWrap.innerHTML = "";
+        files.forEach((f) => {
+          const chip = document.createElement("div");
+          chip.className = "file-chip";
+          chip.innerHTML = `
+            <button class="icon-btn mini" type="button" title="מחק" aria-label="מחק קובץ">🗑️</button>
+            <div class="chip-main">
+              <div class="chip-top">
+                <input class="chip-label" type="text" value="${escapeHtml(f.label)}" aria-label="שם קובץ להשוואה" />
+                <div class="chip-file">${escapeHtml(f.fileName)}</div>
+              </div>
+              <div class="chip-sub">הכנסות: <strong>${formatILS(f.totals.income)}</strong> • הוצאות: <strong>${formatILS(f.totals.expenses)}</strong></div>
+            </div>
+          `;
+          const delBtn = chip.querySelector("button");
+          const labelInput = chip.querySelector("input");
+          delBtn.addEventListener("click", () => {
+            const idx = files.findIndex(x => x.id === f.id);
+            if (idx >= 0) files.splice(idx,1);
+            refreshUI();
+            recompute();
+          });
+          labelInput.addEventListener("input", () => {
+            f.label = labelInput.value.trim() || f.fileName.replace(/\.json$/i,"");
+            refreshSelectors();
+            recompute();
+          });
+          els.filesWrap.appendChild(chip);
+        });
+
+        refreshSelectors();
+      }
+
+      function getSelectedCompareIds(){
+        return Array.from(els.compareList.querySelectorAll("input[type=checkbox]:checked")).map(x => x.value);
+      }
+
+            function recompute(){
+        els.conclusions.innerHTML = "";
+        els.incomeBody.innerHTML = "";
+        els.expenseBody.innerHTML = "";
+
+        const baseId = els.baseSelect.value;
+        const base = files.find(f => f.id === baseId);
+        const compareIds = getSelectedCompareIds();
+
+        if (!base || compareIds.length === 0){
+          els.hint.textContent = files.length < 2
+            ? "העלה לפחות 2 קבצים כדי להשוות."
+            : "בחר קובץ בסיס וסמן לפחות קובץ אחד להשוואה.";
+          els.totalsA.textContent = "-";
+          els.totalsB.textContent = "-";
+          els.totalsNet.textContent = "-";
+          return;
+        }
+
+        els.hint.textContent = `קובץ בסיס: ${base.label} • משווים מול ${compareIds.length} קבצים מסומנים`;
+
+        if (els.incomeThBase) els.incomeThBase.textContent = base.label;
+        if (els.expenseThBase) els.expenseThBase.textContent = base.label;
+        if (els.incomeThOther) els.incomeThOther.textContent = "קובץ מושווה";
+        if (els.expenseThOther) els.expenseThOther.textContent = "קובץ מושווה";
+
+        const selected = compareIds.map(id => files.find(f => f.id === id)).filter(Boolean);
+
+        const avgIncome = selected.reduce((s,f)=> s + safeNum(f.totals.income), 0) / selected.length;
+        const avgExpenses = selected.reduce((s,f)=> s + safeNum(f.totals.expenses), 0) / selected.length;
+
+        const selectedNames = selected.map(f => f.label).join(", ");
+
+        els.totalsA.textContent = `${base.label}: הכנסות ${formatILS(base.totals.income)} • הוצאות ${formatILS(base.totals.expenses)}`;
+
+        els.totalsB.textContent = `מול: ${selectedNames} - ממוצע הכנסות ${formatILS(avgIncome)} • ממוצע הוצאות ${formatILS(avgExpenses)}`;
+
+        els.totalsNet.textContent = `הפרש ממוצע (${selectedNames} מול ${base.label}): הכנסות ${formatILS(avgIncome - base.totals.income)} • הוצאות ${formatILS(avgExpenses - base.totals.expenses)}`;
+
+        let diffCountIncome = 0;
+        let diffCountExpenses = 0;
+
+        function addRow(tbody, otherLabel, name, a, b, d, isExpense){
+          const tr = document.createElement("tr");
+          // Income: + diff is good (green). Expenses: + diff is bad (red).
+          let cls;
+          if (isExpense){
+            cls = d > 0 ? "neg" : "pos";
+          } else {
+            cls = d > 0 ? "pos" : "neg";
+          }
+          tr.innerHTML = `
+            <td>${escapeHtml(name)}</td>
+            <td>${formatILS(a)}</td>
+            <td>${formatILS(b)}</td>
+            <td class="${cls}">${d > 0 ? "+" : ""}${formatILS(d)}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+
+        function diffsForMaps(baseMap, otherMap){
+          const names = new Set([...baseMap.keys(), ...otherMap.keys()]);
+          const rows = [];
+          for (const name of names){
+            const a = safeNum(baseMap.get(name) ?? 0);
+            const b = safeNum(otherMap.get(name) ?? 0);
+            const d = b - a;
+            if (d !== 0) rows.push({name, a, b, d});
+          }
+          rows.sort((x,y)=> Math.abs(y.d) - Math.abs(x.d));
+          return rows;
+        }
+
+        for (const other of selected){
+          const sectionTitleIncome = document.createElement("tr");
+          sectionTitleIncome.innerHTML = `<td class="pair-sep" colspan="4" style="font-weight:900;">${other.label} מול ${base.label}</td>`;
+          els.incomeBody.appendChild(sectionTitleIncome);
+
+          const sectionTitleExpense = document.createElement("tr");
+          sectionTitleExpense.innerHTML = `<td class="pair-sep" colspan="4" style="font-weight:900;">${other.label} מול ${base.label}</td>`;
+          els.expenseBody.appendChild(sectionTitleExpense);
+
+          const title = document.createElement("div");
+          title.className = "section-title";
+          title.textContent = `מסקנות: ${other.label} מול ${base.label}`;
+          els.conclusions.appendChild(title);
+
+          const incomeDiffs = diffsForMaps(base.maps.income, other.maps.income);
+          const expenseDiffs = diffsForMaps(base.maps.expenses, other.maps.expenses);
+
+          if (incomeDiffs.length === 0 && expenseDiffs.length === 0){
+            const p = document.createElement("div");
+            p.className = "conclusion";
+            p.textContent = `לא נמצאו שינויים בהכנסות ובהוצאות בין ${base.label} ל-${other.label}.`;
+            els.conclusions.appendChild(p);
+          } else {
+            const all = [
+              ...incomeDiffs.map(x => ({...x, kind:"הכנסה"})),
+              ...expenseDiffs.map(x => ({...x, kind:"הוצאה"}))
+            ].sort((x,y)=> Math.abs(y.d) - Math.abs(x.d));
+
+            for (const d of all){
+              const moreLess = d.d > 0 ? "יותר" : "פחות";
+              const p = document.createElement("div");
+              p.className = "conclusion";
+              p.textContent = `${other.label}: ${d.kind} "${d.name}" - ${moreLess} ב-${formatILS(Math.abs(d.d))} (מ-${formatILS(d.a)} ל-${formatILS(d.b)})`;
+              els.conclusions.appendChild(p);
+            }
+          }
+
+          for (const r of incomeDiffs){
+            diffCountIncome++;
+            addRow(els.incomeBody, other.label, r.name, r.a, r.b, r.d, false);
+          }
+          for (const r of expenseDiffs){
+            diffCountExpenses++;
+            addRow(els.expenseBody, other.label, r.name, r.a, r.b, r.d, true);
+          }
+        }
+
+        if (diffCountIncome === 0){
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td class="pair-sep" colspan="4">לא נמצאו שינויים בהכנסות מול קובץ הבסיס.</td>`;
+          els.incomeBody.appendChild(tr);
+        }
+        if (diffCountExpenses === 0){
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td class="pair-sep" colspan="4">לא נמצאו שינויים בהוצאות מול קובץ הבסיס.</td>`;
+          els.expenseBody.appendChild(tr);
+        }
+      }
+
+      async function readJsonFile(file){
+        const text = await file.text();
+        const obj = JSON.parse(text);
+        if (!validateObj(obj)) throw new Error("קובץ לא תקין: חייב להיות בפורמט income-expenses-v4");
+        const maps = { income: buildMap(obj.income), expenses: buildMap(obj.expenses) };
+        const totals = { income: sumMap(maps.income), expenses: sumMap(maps.expenses) };
+        return { obj, maps, totals };
+      }
+
+      function handleFilesChosen(list){
+        const arr = Array.from(list || []);
+        if (!arr.length) return;
+        const jsonOnly = arr.filter(f => (f.type === "application/json" || /\.json$/i.test(f.name)));
+        if (jsonOnly.length !== arr.length){
+          alert("אפשר להעלות רק קבצי JSON.");
+        }
+
+        Promise.allSettled(jsonOnly.map(readJsonFile)).then(results => {
+          let added = 0;
+          for (let i=0;i<results.length;i++){
+            const res = results[i];
+            const file = jsonOnly[i];
+            if (res.status === "fulfilled"){
+              const id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+              const baseName = file.name.replace(/\.json$/i,"");
+              files.push({
+                id,
+                fileName: file.name,
+                label: baseName,
+                data: res.value.obj,
+                totals: res.value.totals,
+                maps: res.value.maps
+              });
+              added++;
+            } else {
+              alert(res.reason?.message || "שגיאה בקריאת קובץ");
+            }
+          }
+
+          if (added){
+            refreshUI();
+            if (files.length >= 2){
+              els.baseSelect.value = files[0].id;
+              refreshSelectors();
+              recompute();
+            }
+          }
+        });
+      }
+
+      els.fileBtn.addEventListener("click", () => { els.fileInput.value=""; els.fileInput.click(); });
+      const fileBtn2 = document.getElementById("addFilesBtn2");
+      if (fileBtn2) fileBtn2.addEventListener("click", () => { els.fileInput.value=""; els.fileInput.click(); });
+      els.fileInput.addEventListener("change", (e) => handleFilesChosen(e.target.files));
+            els.baseSelect.addEventListener("change", () => { refreshSelectors(); recompute(); });
+
+    })();
+  
+    </script>
+  </body>
+</html>
